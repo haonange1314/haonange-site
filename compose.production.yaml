@@ -1,0 +1,35 @@
+services:
+  portal:
+    build:
+      context: ${PORTAL_PROJECT_DIR:-../haonange-site}
+      dockerfile: Dockerfile
+    environment:
+      NODE_ENV: production
+      PORT: "3000"
+      HOSTNAME: 0.0.0.0
+    healthcheck:
+      test:
+        - CMD
+        - node
+        - -e
+        - >-
+          fetch('http://127.0.0.1:3000/').then((response) => {
+            if (!response.ok) process.exit(1)
+          }).catch(() => process.exit(1))
+      interval: 10s
+      timeout: 5s
+      retries: 6
+      start_period: 20s
+    restart: unless-stopped
+    security_opt:
+      - no-new-privileges:true
+
+  gateway:
+    environment:
+      APEX_DOMAIN: ${APEX_DOMAIN:-haonange.com}
+      PORTAL_DOMAIN: ${PORTAL_DOMAIN:-www.haonange.com}
+    volumes:
+      - ${PORTAL_PROJECT_DIR:-../haonange-site}/infra/Caddyfile:/etc/caddy/Caddyfile:ro
+    depends_on:
+      portal:
+        condition: service_healthy

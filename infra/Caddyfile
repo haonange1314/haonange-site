@@ -1,0 +1,49 @@
+(common_security) {
+	header {
+		Strict-Transport-Security "max-age=31536000; includeSubDomains"
+		X-Content-Type-Options "nosniff"
+		X-Frame-Options "DENY"
+		Referrer-Policy "strict-origin-when-cross-origin"
+		Permissions-Policy "camera=(), microphone=(), geolocation=()"
+		-Server
+	}
+
+	encode zstd gzip
+
+	log {
+		output stdout
+		format json
+	}
+}
+
+{$APEX_DOMAIN} {
+	import common_security
+	redir https://{$PORTAL_DOMAIN}{uri} permanent
+}
+
+{$PORTAL_DOMAIN} {
+	import common_security
+
+	header {
+		Content-Security-Policy "default-src 'self'; img-src 'self' data:; style-src 'self' 'unsafe-inline'; font-src 'self' data:; script-src 'self' 'unsafe-inline'; connect-src 'self'; frame-ancestors 'none'; base-uri 'self'; form-action 'self'"
+	}
+
+	reverse_proxy portal:3000
+}
+
+{$PUBLIC_DOMAIN} {
+	import common_security
+
+	@api path /api/* /docs* /openapi.json
+	handle @api {
+		reverse_proxy api:8000
+	}
+
+	handle {
+		reverse_proxy web:80
+	}
+
+	header {
+		Content-Security-Policy "default-src 'self'; img-src 'self' data: blob:; style-src 'self' 'unsafe-inline'; font-src 'self' data:; connect-src 'self'; frame-ancestors 'none'; base-uri 'self'; form-action 'self'"
+	}
+}

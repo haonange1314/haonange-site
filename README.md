@@ -42,3 +42,38 @@ docker run --rm -p 3000:3000 haonange-site
 - `raid.haonange.com` 反向代理到独立的 DNF 排表工具。
 
 生产服务器只对公网开放 80/443，应用容器端口不直接暴露公网。
+
+## 与 DNF 项目联合部署
+
+服务器目录约定：
+
+```text
+/srv/dnf-leader-tool
+/srv/haonange-site
+```
+
+将 `infra/production.env.example` 中的四项配置加入
+`/srv/dnf-leader-tool/.env.production`，再从 DNF 项目目录执行：
+
+```bash
+docker compose \
+  --env-file .env.production \
+  -f compose.yaml \
+  -f compose.production.yaml \
+  -f ../haonange-site/compose.production.yaml \
+  config --quiet
+
+docker compose \
+  --env-file .env.production \
+  -f compose.yaml \
+  -f compose.production.yaml \
+  -f ../haonange-site/compose.production.yaml \
+  up -d --build --wait
+```
+
+联合配置只保留一个 Caddy 容器：
+
+- 根域名永久跳转到 `www`；
+- `www` 转发到门户容器；
+- `raid` 的 API 和网页分别转发到 DNF 项目的 API、Web 容器；
+- PostgreSQL、API、Web 和门户均不直接发布公网端口。
