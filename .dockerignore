@@ -3,6 +3,8 @@ dist
 .vinext
 .wrangler
 .git
+.idea
+.openai
 .DS_Store
 npm-debug.log*
 .env*
